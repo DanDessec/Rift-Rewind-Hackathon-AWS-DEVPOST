@@ -1,0 +1,149 @@
+import React from "react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Button } from "@/components/ui/button";
+import { Sparkles, TrendingUp, Award, Share2, ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
+
+export default function Landing() {
+  return (
+    <div className="min-h-screen relative overflow-hidden" 
+         style={{ background: 'linear-gradient(135deg, #010A13 0%, #0A1628 50%, #1a1f3a 100%)' }}>
+      
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-20 left-20 w-96 h-96 bg-cyan-500 rounded-full opacity-10 blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-yellow-500 rounded-full opacity-10 blur-3xl animate-pulse" 
+             style={{ animationDelay: '1s' }}></div>
+      </div>
+
+      <div className="relative z-10">
+        {/* Header */}
+        <header className="container mx-auto px-6 py-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center"
+                 style={{ background: 'linear-gradient(135deg, #0BC6E3, #C89B3C)' }}>
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-white">League Insights</h1>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <div className="container mx-auto px-6 py-20 md:py-32">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center max-w-4xl mx-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 1, repeat: Infinity, repeatType: "reverse" }}
+              className="inline-block mb-6"
+            >
+              <div className="px-4 py-2 rounded-full text-sm font-medium"
+                   style={{ 
+                     background: 'linear-gradient(90deg, rgba(11, 198, 227, 0.2), rgba(200, 155, 60, 0.2))',
+                     border: '1px solid rgba(11, 198, 227, 0.3)',
+                     color: '#0BC6E3'
+                   }}>
+                ✨ Powered by AWS & Riot Games
+              </div>
+            </motion.div>
+
+            <h2 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+              Your Season,
+              <br />
+              <span style={{ 
+                background: 'linear-gradient(90deg, #0BC6E3, #C89B3C)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                Your Story
+              </span>
+            </h2>
+
+            <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-2xl mx-auto">
+              Discover your League of Legends journey with AI-powered insights, 
+              beautiful visualizations, and shareable achievements
+            </p>
+
+            <Link to={createPageUrl("Upload")}>
+              <Button 
+                size="lg"
+                className="text-lg px-8 py-6 rounded-xl font-bold transition-all duration-300 hover:scale-105 group"
+                style={{ 
+                  background: 'linear-gradient(135deg, #0BC6E3, #C89B3C)',
+                  color: 'white'
+                }}
+              >
+                Get Started
+                <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          </motion.div>
+
+          {/* Features Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="grid md:grid-cols-3 gap-6 mt-20 max-w-5xl mx-auto"
+          >
+            <FeatureCard
+              icon={TrendingUp}
+              title="Upload Match History"
+              description="Simply upload your CSV file and watch the magic happen"
+              delay={0.1}
+            />
+            <FeatureCard
+              icon={Sparkles}
+              title="AI-Powered Insights"
+              description="Get personalized tips and analysis to improve your gameplay"
+              delay={0.2}
+            />
+            <FeatureCard
+              icon={Award}
+              title="Earn Achievements"
+              description="Unlock badges and celebrate your accomplishments"
+              delay={0.3}
+            />
+          </motion.div>
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="container mx-auto px-6 pb-20 text-center">
+          <p className="text-gray-400 mb-4">Ready to relive your best moments?</p>
+          <Link to={createPageUrl("Upload")} className="text-cyan-400 hover:text-cyan-300 font-semibold inline-flex items-center gap-2">
+            Start Your Rift Rewind
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeatureCard({ icon: Icon, title, description, delay }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay }}
+      className="p-6 rounded-2xl backdrop-blur-sm transition-all duration-300 hover:scale-105"
+      style={{ 
+        background: 'rgba(30, 35, 40, 0.5)',
+        border: '1px solid rgba(11, 198, 227, 0.2)'
+      }}
+    >
+      <div className="w-12 h-12 rounded-xl mb-4 flex items-center justify-center"
+           style={{ background: 'linear-gradient(135deg, rgba(11, 198, 227, 0.2), rgba(200, 155, 60, 0.2))' }}>
+        <Icon className="w-6 h-6" style={{ color: '#0BC6E3' }} />
+      </div>
+      <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+      <p className="text-gray-400">{description}</p>
+    </motion.div>
+  );
+}
