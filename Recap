@@ -1,0 +1,149 @@
+import React, { useRef } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Share2, Download, Copy, Trophy, TrendingUp, Award, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+
+export default function RecapPage() {
+  const recapRef = useRef(null);
+  
+  const { data: matches, isLoading } = useQuery({
+    queryKey: ['matches'],
+    queryFn: () => base44.entities.Match.list('-match_date'),
+    initialData: [],
+  });
+
+  // Calculate recap stats
+  const totalGames = matches.length;
+  const wins = matches.filter(m => m.win).length;
+  const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(0) : 0;
+  
+  const avgKDA = matches.length > 0 
+    ? (matches.reduce((sum, m) => sum + (m.kda || 0), 0) / matches.length).toFixed(2)
+    : 0;
+
+  const championStats = matches.reduce((acc, m) => {
+    if (!acc[m.champion]) acc[m.champion] = { games: 0, wins: 0 };
+    acc[m.champion].games += 1;
+    if (m.win) acc[m.champion].wins += 1;
+    return acc;
+  }, {});
+
+  const bestChampion = Object.entries(championStats)
+    .sort((a, b) => b[1].games - a[1].games)[0];
+
+  const bestChampionWinRate = bestChampion 
+    ? ((bestChampion[1].wins / bestChampion[1].games) * 100).toFixed(0)
+    : 0;
+
+  // Get biggest achievement
+  const noAfkGames = matches.filter(m => !m.afk).length;
+  let biggestAchievement = "Played your first games";
+  if (noAfkGames >= 100) biggestAchievement = "100+ games without AFK";
+  else if (noAfkGames >= 50) biggestAchievement = "50+ games without AFK";
+  else if (winRate >= 60) biggestAchievement = `${winRate}% win rate`;
+  else if (avgKDA >= 4) biggestAchievement = `${avgKDA} KDA average`;
+
+  // Improvement highlight
+  const firstHalf = matches.slice(Math.floor(matches.length / 2));
+  const secondHalf = matches.slice(0, Math.floor(matches.length / 2));
+  const firstHalfKDA = firstHalf.reduce((sum, m) => sum + (m.kda || 0), 0) / (firstHalf.length || 1);
+  const secondHalfKDA = secondHalf.reduce((sum, m) => sum + (m.kda || 0), 0) / (secondHalf.length || 1);
+  const improvement = ((secondHalfKDA - firstHalfKDA) / firstHalfKDA * 100).toFixed(0);
+
+  const quote = winRate >= 60 
+    ? "A true champion of the Rift!" 
+    : winRate >= 50 
+    ? "Balanced, as all things should be." 
+    : "Every game is a learning opportunity!";
+
+  const handleDownload = () => {
+    alert('Download functionality would export this recap as a PNG image');
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    alert('Link copied to clipboard!');
+  };
+
+  const handleShare = (platform) => {
+    alert(`Sharing to ${platform} would be implemented here`);
+  };
+
+  return (
+    <div className="p-6 md:p-8" style={{ backgroundColor: '#010A13', minHeight: '100vh' }}>
+      <div className="max-w-4xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
+            <Share2 className="w-10 h-10" style={{ color: '#0BC6E3' }} />
+            Share Your Recap
+          </h1>
+          <p className="text-gray-400">Show off your Season 2025 achievements</p>
+        </motion.div>
+
+        {/* Recap Card */}
+        <motion.div
+          ref={recapRef}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="mb-8"
+        >
+          <Card className="border-4 overflow-hidden relative"
+                style={{ 
+                  backgroundColor: '#1E2328',
+                  borderColor: '#0BC6E3',
+                  borderImage: 'linear-gradient(135deg, #0BC6E3, #C89B3C) 1'
+                }}>
+            {/* Background decorations */}
+            <div className="absolute inset-0 overflow-hidden opacity-10">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-96 h-96 bg-yellow-500 rounded-full blur-3xl"></div>
+            </div>
+
+            <CardContent className="p-8 md:p-12 relative">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4"
+                     style={{ background: 'linear-gradient(90deg, rgba(11, 198, 227, 0.2), rgba(200, 155, 60, 0.2))' }}>
+                  <Sparkles className="w-5 h-5" style={{ color: '#0BC6E3' }} />
+                  <span className="text-white font-semibold">Season 2025 Recap</span>
+                </div>
+                <h2 className="text-4xl md:text-5xl font-bold mb-2"
+                    style={{ 
+                      background: 'linear-gradient(90deg, #0BC6E3, #C89B3C)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent'
+                    }}>
+                  Your Rift Journey
+                </h2>
+                <p className="text-gray-400 text-lg">A year of battles and triumphs</p>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid md:grid-cols-2 gap-6 mb-8">
+                <RecapStat
+                  icon={Trophy}
+                  label="Total Games"
+                  value={totalGames.toString()}
+                  color="#0BC6E3"
+                />
+                <RecapStat
+                  icon={TrendingUp}
+                  label="Win Rate"
+                  value={`${winRate}%`}
+                  color="#10B981"
+                />
+                <RecapStat
+                  icon={Award}
+                  label="Average KDA"
+                  value={avgKDA}
+                  color="#C89B3C"
+                />
+ 
