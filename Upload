@@ -1,0 +1,149 @@
+import React, { useState, useCallback } from "react";
+import { base44 } from "@/api/base44Client";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Upload, FileText, CheckCircle2, AlertCircle, Download, ArrowLeft, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+
+export default function UploadPage() {
+  const navigate = useNavigate();
+  const [file, setFile] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState(null);
+  const [preview, setPreview] = useState(null);
+
+  const handleDrag = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && droppedFile.type === "text/csv") {
+      setFile(droppedFile);
+      parseCSV(droppedFile);
+      setError(null);
+    } else {
+      setError("Please upload a CSV file");
+    }
+  }, []);
+
+  const handleFileInput = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile && selectedFile.type === "text/csv") {
+      setFile(selectedFile);
+      parseCSV(selectedFile);
+      setError(null);
+    } else {
+      setError("Please upload a CSV file");
+    }
+  };
+
+  const parseCSV = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      const lines = text.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+      
+      const previewData = lines.slice(1, 6).map(line => {
+        const values = line.split(',');
+        return headers.reduce((obj, header, index) => {
+          obj[header] = values[index]?.trim() || '';
+          return obj;
+        }, {});
+      });
+      
+      setPreview(previewData);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    
+    setUploading(true);
+    setError(null);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target.result;
+        const lines = text.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/ /g, '_'));
+        
+        const matches = [];
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+          
+          const values = lines[i].split(',');
+          const match = {};
+          
+          headers.forEach((header, index) => {
+            const value = values[index]?.trim() || '';
+            
+            if (header === 'win/loss' || header === 'win_loss') {
+              match.win = value.toLowerCase() === 'win';
+            } else if (header === 'afk') {
+              match.afk = value.toLowerCase() === 'yes' || value.toLowerCase() === 'true';
+            } else if (['kills', 'deaths', 'assists', 'vision_score', 'gold_earned', 'damage_dealt', 'team_reports', 'match_duration'].includes(header)) {
+              match[header] = parseFloat(value) || 0;
+            } else {
+              match[header] = value;
+            }
+          });
+          
+          // Calculate KDA
+          match.kda = match.deaths === 0 
+            ? match.kills + match.assists 
+            : (match.kills + match.assists) / match.deaths;
+          
+          matches.push(match);
+        }
+
+        await base44.entities.Match.bulkCreate(matches);
+        navigate(createPageUrl("Dashboard"));
+      };
+      reader.readAsText(file);
+    } catch (err) {
+      setError("Error processing file. Please check the format and try again.");
+      setUploading(false);
+    }
+  };
+
+  const downloadSample = () => {
+    const sampleCSV = `Match Date,Champion,Kills,Deaths,Assists,Win/Loss,Vision Score,Gold Earned,Damage Dealt,AFK,Team Reports,Match Duration,Role
+2025-01-15,Jinx,12,3,8,Win,45,15000,25000,No,0,32,ADC
+2025-01-14,Thresh,2,5,18,Win,78,8000,12000,No,0,28,Support
+2025-01-13,Yasuo,8,7,5,Loss,22,12000,20000,No,0,35,Mid
+2025-01-12,Lee Sin,10,4,12,Win,35,13000,18000,No,0,30,Jungle
+2025-01-11,Jax,15,2,6,Win,28,16000,28000,No,0,38,Top`;
+
+    const blob = new Blob([sampleCSV], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample_match_history.csv';
+    a.click();
+  };
+
+  return (
+    <div className="min-h-screen p-6 md:p-12"
+         style={{ background: 'linear-gradient(135deg, #010A13 0%, #0A1628 100%)' }}>
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+ 
