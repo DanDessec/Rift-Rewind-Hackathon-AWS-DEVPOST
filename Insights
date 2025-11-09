@@ -1,0 +1,149 @@
+import React from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Lightbulb, TrendingUp, AlertTriangle, Sparkles, Trophy, Eye } from "lucide-react";
+import { motion } from "framer-motion";
+
+export default function InsightsPage() {
+  const { data: matches, isLoading } = useQuery({
+    queryKey: ['matches'],
+    queryFn: () => base44.entities.Match.list('-match_date'),
+    initialData: [],
+  });
+
+  // Generate AI insights
+  const insights = [];
+
+  // Strengths
+  const avgAssists = matches.reduce((sum, m) => sum + (m.assists || 0), 0) / matches.length;
+  const avgKills = matches.reduce((sum, m) => sum + (m.kills || 0), 0) / matches.length;
+  const assistParticipation = avgKills > 0 ? ((avgAssists / avgKills) * 100).toFixed(0) : 0;
+
+  if (assistParticipation >= 100) {
+    insights.push({
+      type: 'strength',
+      title: 'Exceptional Teamwork',
+      description: `Your teamwork is outstanding with ${assistParticipation}% assist participation rate. You excel at helping your team secure kills and working together for victories.`,
+      stat: `${assistParticipation}% Assist Rate`,
+      icon: 'trophy',
+    });
+  }
+
+  const avgVision = matches.reduce((sum, m) => sum + (m.vision_score || 0), 0) / matches.length;
+  if (avgVision >= 40) {
+    insights.push({
+      type: 'strength',
+      title: 'Vision Control Mastery',
+      description: `Your vision score averaging ${avgVision.toFixed(1)} per game puts you among elite players. You understand the importance of map control and information gathering.`,
+      stat: `${avgVision.toFixed(1)} Avg Vision Score`,
+      icon: 'eye',
+    });
+  }
+
+  // Win rate by role
+  const roleStats = matches.reduce((acc, m) => {
+    if (!acc[m.role]) acc[m.role] = { wins: 0, total: 0 };
+    acc[m.role].total += 1;
+    if (m.win) acc[m.role].wins += 1;
+    return acc;
+  }, {});
+
+  const bestRole = Object.entries(roleStats)
+    .map(([role, stats]) => ({ role, winRate: (stats.wins / stats.total) * 100 }))
+    .sort((a, b) => b.winRate - a.winRate)[0];
+
+  if (bestRole && bestRole.winRate >= 60) {
+    insights.push({
+      type: 'strength',
+      title: `${bestRole.role} Specialist`,
+      description: `You dominate in the ${bestRole.role} role with an impressive ${bestRole.winRate.toFixed(0)}% win rate. Your understanding of this position gives you a competitive edge.`,
+      stat: `${bestRole.winRate.toFixed(0)}% Win Rate`,
+      icon: 'trophy',
+    });
+  }
+
+  // Improvement Areas
+  const avgDeaths = matches.reduce((sum, m) => sum + (m.deaths || 0), 0) / matches.length;
+  if (avgDeaths >= 6) {
+    insights.push({
+      type: 'improvement',
+      title: 'Work on Positioning',
+      description: `With an average of ${avgDeaths.toFixed(1)} deaths per game, there's room to improve your positioning and map awareness. Focus on safer positioning in team fights and watch minimap more frequently.`,
+      stat: `${avgDeaths.toFixed(1)} Avg Deaths`,
+      icon: 'alert',
+    });
+  }
+
+  const losses = matches.filter(m => !m.win);
+  const lossAvgGold = losses.reduce((sum, m) => sum + (m.gold_earned || 0), 0) / losses.length;
+  const wins = matches.filter(m => m.win);
+  const winAvgGold = wins.reduce((sum, m) => sum + (m.gold_earned || 0), 0) / wins.length;
+
+  if (winAvgGold > lossAvgGold * 1.3) {
+    insights.push({
+      type: 'improvement',
+      title: 'CS and Gold Generation',
+      description: `Your gold earnings drop significantly in losses. Practice last-hitting minions consistently throughout the game, even when behind. Aim for 6-7 CS per minute minimum.`,
+      stat: `${((lossAvgGold / winAvgGold) * 100).toFixed(0)}% of win gold in losses`,
+      icon: 'alert',
+    });
+  }
+
+  // Recommendations
+  const championStats = matches.reduce((acc, m) => {
+    if (!acc[m.champion]) acc[m.champion] = { wins: 0, total: 0 };
+    acc[m.champion].total += 1;
+    if (m.win) acc[m.champion].wins += 1;
+    return acc;
+  }, {});
+
+  const bestChampions = Object.entries(championStats)
+    .filter(([_, stats]) => stats.total >= 3)
+    .map(([champ, stats]) => ({ champ, winRate: (stats.wins / stats.total) * 100, games: stats.total }))
+    .sort((a, b) => b.winRate - a.winRate)
+    .slice(0, 3);
+
+  if (bestChampions.length > 0) {
+    const topChamps = bestChampions.map(c => c.champ).join(', ');
+    insights.push({
+      type: 'recommendation',
+      title: 'Stick to Your Champions',
+      description: `Your win rate is highest with ${topChamps}. Consider playing these champions more often in ranked games to maximize your LP gains and climb efficiently.`,
+      stat: `${bestChampions[0].winRate.toFixed(0)}% Win Rate`,
+      icon: 'sparkles',
+    });
+  }
+
+  // Time-based analysis
+  const recentMatches = matches.slice(0, 10);
+  const olderMatches = matches.slice(10, 20);
+  
+  if (recentMatches.length >= 10 && olderMatches.length >= 10) {
+    const recentWinRate = (recentMatches.filter(m => m.win).length / recentMatches.length) * 100;
+    const olderWinRate = (olderMatches.filter(m => m.win).length / olderMatches.length) * 100;
+    
+    if (recentWinRate > olderWinRate + 15) {
+      insights.push({
+        type: 'recommendation',
+        title: 'You\'re On Fire!',
+        description: `Your recent performance shows a ${(recentWinRate - olderWinRate).toFixed(0)}% improvement in win rate. Keep up the momentum and maintain your current playstyle and champion pool.`,
+        stat: `${recentWinRate.toFixed(0)}% Recent Win Rate`,
+        icon: 'trending',
+      });
+    }
+  }
+
+  return (
+    <div className="p-6 md:p-8" style={{ backgroundColor: '#010A13', minHeight: '100vh' }}>
+      <div className="max-w-5xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
+            <Lightbulb className="w-10 h-10" style={{ color: '#C89B3C' }} />
+            AI-Powered Insights
+ 
