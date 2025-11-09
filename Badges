@@ -1,0 +1,149 @@
+import React from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Award, Shield, Star, Sparkles, Trophy, Users, Eye, TrendingUp, Zap, Heart, Target, Flame } from "lucide-react";
+import { motion } from "framer-motion";
+
+const BADGE_ICONS = {
+  no_afk: Shield,
+  positive_vibes: Heart,
+  team_player: Users,
+  most_improved: TrendingUp,
+  vision_master: Eye,
+  comeback_king: Zap,
+  one_trick: Target,
+  flex_player: Star,
+  pentakill: Flame,
+};
+
+const BADGE_COLORS = {
+  bronze: '#CD7F32',
+  silver: '#C0C0C0',
+  gold: '#FFD700',
+  platinum: '#E5E4E2',
+  diamond: '#B9F2FF',
+};
+
+export default function BadgesPage() {
+  const { data: matches, isLoading } = useQuery({
+    queryKey: ['matches'],
+    queryFn: () => base44.entities.Match.list('-match_date'),
+    initialData: [],
+  });
+
+  // Calculate badges
+  const badges = [];
+
+  // No AFK Streak
+  const noAfkGames = matches.filter(m => !m.afk).length;
+  if (noAfkGames >= 100) {
+    badges.push({
+      id: 'no_afk_platinum',
+      name: 'No AFK Legend',
+      description: '100+ games without going AFK',
+      tier: 'platinum',
+      category: 'Sportsmanship',
+      icon: 'no_afk',
+      earned: true,
+      date: new Date().toLocaleDateString(),
+    });
+  } else if (noAfkGames >= 50) {
+    badges.push({
+      id: 'no_afk_gold',
+      name: 'No AFK Champion',
+      description: '50+ games without going AFK',
+      tier: 'gold',
+      category: 'Sportsmanship',
+      icon: 'no_afk',
+      earned: true,
+      date: new Date().toLocaleDateString(),
+    });
+  } else if (noAfkGames >= 25) {
+    badges.push({
+      id: 'no_afk_silver',
+      name: 'No AFK Hero',
+      description: '25+ games without going AFK',
+      tier: 'silver',
+      category: 'Sportsmanship',
+      icon: 'no_afk',
+      earned: true,
+      date: new Date().toLocaleDateString(),
+    });
+  } else if (noAfkGames >= 10) {
+    badges.push({
+      id: 'no_afk_bronze',
+      name: 'No AFK Rookie',
+      description: '10+ games without going AFK',
+      tier: 'bronze',
+      category: 'Sportsmanship',
+      icon: 'no_afk',
+      earned: true,
+      date: new Date().toLocaleDateString(),
+    });
+  }
+
+  // Positive Vibes
+  const recentMatches = matches.slice(0, 20);
+  const noReports = recentMatches.filter(m => (m.team_reports || 0) === 0).length;
+  if (noReports >= 20) {
+    badges.push({
+      id: 'positive_vibes',
+      name: 'Positive Vibes',
+      description: '20 games with 0 negative reports',
+      tier: 'gold',
+      category: 'Sportsmanship',
+      icon: 'positive_vibes',
+      earned: true,
+      date: new Date().toLocaleDateString(),
+    });
+  }
+
+  // Team Player (high assist ratio)
+  const avgAssists = matches.reduce((sum, m) => sum + (m.assists || 0), 0) / matches.length;
+  const avgKills = matches.reduce((sum, m) => sum + (m.kills || 0), 0) / matches.length;
+  const assistRatio = avgKills > 0 ? (avgAssists / avgKills) : 0;
+  
+  if (assistRatio >= 1.5) {
+    badges.push({
+      id: 'team_player',
+      name: 'Team Player',
+      description: 'High assist participation rate',
+      tier: 'gold',
+      category: 'Sportsmanship',
+      icon: 'team_player',
+      earned: true,
+      date: new Date().toLocaleDateString(),
+    });
+  }
+
+  // Vision Master
+  const avgVision = matches.reduce((sum, m) => sum + (m.vision_score || 0), 0) / matches.length;
+  if (avgVision >= 50) {
+    badges.push({
+      id: 'vision_master',
+      name: 'Vision Master',
+      description: 'Top tier vision control',
+      tier: 'platinum',
+      category: 'Performance',
+      icon: 'vision_master',
+      earned: true,
+      date: new Date().toLocaleDateString(),
+    });
+  } else if (avgVision >= 35) {
+    badges.push({
+      id: 'vision_expert',
+      name: 'Vision Expert',
+      description: 'Excellent vision control',
+      tier: 'gold',
+      category: 'Performance',
+      icon: 'vision_master',
+      earned: true,
+      date: new Date().toLocaleDateString(),
+    });
+  }
+
+  // Most Improved
+  const firstHalf = matches.slice(Math.floor(matches.length / 2));
+ 
