@@ -1,0 +1,149 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Trophy, TrendingUp, Users, Award, Gamepad2, Eye, Coins, Zap } from "lucide-react";
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { motion } from "framer-motion";
+
+const COLORS = ['#0BC6E3', '#C89B3C', '#8B5CF6', '#EC4899', '#10B981'];
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  
+  const { data: matches, isLoading } = useQuery({
+    queryKey: ['matches'],
+    queryFn: () => base44.entities.Match.list('-match_date'),
+    initialData: [],
+  });
+
+  useEffect(() => {
+    if (!isLoading && matches.length === 0) {
+      navigate(createPageUrl("Upload"));
+    }
+  }, [matches, isLoading, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: '#010A13' }}>
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2" style={{ borderColor: '#0BC6E3' }}></div>
+      </div>
+    );
+  }
+
+  // Calculate stats
+  const totalGames = matches.length;
+  const wins = matches.filter(m => m.win).length;
+  const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : 0;
+  
+  const avgKDA = matches.length > 0 
+    ? (matches.reduce((sum, m) => sum + (m.kda || 0), 0) / matches.length).toFixed(2)
+    : 0;
+
+  const afkCount = matches.filter(m => m.afk).length;
+  const noAfkStreak = matches.length - afkCount;
+  const sportsmanshipScore = Math.max(0, Math.min(100, 
+    100 - (afkCount / totalGames * 50) - (matches.reduce((sum, m) => sum + (m.team_reports || 0), 0) * 5)
+  )).toFixed(0);
+
+  // KDA trend by month
+  const kdaTrend = matches.reduce((acc, match) => {
+    const month = new Date(match.match_date).toLocaleDateString('en-US', { month: 'short' });
+    if (!acc[month]) {
+      acc[month] = { month, total: 0, count: 0 };
+    }
+    acc[month].total += match.kda || 0;
+    acc[month].count += 1;
+    return acc;
+  }, {});
+
+  const kdaData = Object.values(kdaTrend).map(item => ({
+    month: item.month,
+    kda: (item.total / item.count).toFixed(2)
+  }));
+
+  // Win/Loss by month
+  const winLossData = matches.reduce((acc, match) => {
+    const month = new Date(match.match_date).toLocaleDateString('en-US', { month: 'short' });
+    if (!acc[month]) {
+      acc[month] = { month, wins: 0, losses: 0 };
+    }
+    if (match.win) {
+      acc[month].wins += 1;
+    } else {
+      acc[month].losses += 1;
+    }
+    return acc;
+  }, {});
+
+  const winLossChartData = Object.values(winLossData);
+
+  // Champion stats
+  const championStats = matches.reduce((acc, match) => {
+    if (!acc[match.champion]) {
+      acc[match.champion] = { champion: match.champion, games: 0 };
+    }
+    acc[match.champion].games += 1;
+    return acc;
+  }, {});
+
+  const championData = Object.values(championStats)
+    .sort((a, b) => b.games - a.games)
+    .slice(0, 5);
+
+  // Role performance
+  const roleStats = matches.reduce((acc, match) => {
+    if (!acc[match.role]) {
+      acc[match.role] = { role: match.role, wins: 0, total: 0 };
+    }
+    acc[match.role].total += 1;
+    if (match.win) acc[match.role].wins += 1;
+    return acc;
+  }, {});
+
+  const roleData = Object.values(roleStats).map(r => ({
+    role: r.role,
+    winRate: ((r.wins / r.total) * 100).toFixed(0)
+  }));
+
+  return (
+    <div className="p-6 md:p-8" style={{ backgroundColor: '#010A13', minHeight: '100vh' }}>
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            Welcome Back, Summoner
+          </h1>
+          <p className="text-gray-400">Here's your performance overview</p>
+        </motion.div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard
+            icon={Gamepad2}
+            label="Total Games"
+            value={totalGames}
+            color="#0BC6E3"
+            delay={0.1}
+          />
+          <StatCard
+            icon={Trophy}
+            label="Win Rate"
+            value={`${winRate}%`}
+            color="#C89B3C"
+            delay={0.2}
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="Average KDA"
+            value={avgKDA}
+            color={avgKDA >= 3 ? '#10B981' : avgKDA >= 2 ? '#FBBF24' : '#EF4444'}
+            delay={0.3}
+          />
+ 
