@@ -1,0 +1,80 @@
+{
+  "name": "Match",
+  "type": "object",
+  "properties": {
+    "match_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date when the match was played"
+    },
+    "champion": {
+      "type": "string",
+      "description": "Champion played in this match"
+    },
+    "kills": {
+      "type": "number",
+      "description": "Number of kills"
+    },
+    "deaths": {
+      "type": "number",
+      "description": "Number of deaths"
+    },
+    "assists": {
+      "type": "number",
+      "description": "Number of assists"
+    },
+    "win": {
+      "type": "boolean",
+      "description": "Whether the match was won"
+    },
+    "vision_score": {
+      "type": "number",
+      "description": "Vision score for the match"
+    },
+    "gold_earned": {
+      "type": "number",
+      "description": "Total gold earned"
+    },
+    "damage_dealt": {
+      "type": "number",
+      "description": "Total damage dealt"
+    },
+    "afk": {
+      "type": "boolean",
+      "description": "Whether player was AFK"
+    },
+    "team_reports": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of team reports received"
+    },
+    "match_duration": {
+      "type": "number",
+      "description": "Match duration in minutes"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "Top",
+        "Jungle",
+        "Mid",
+        "ADC",
+        "Support"
+      ],
+      "description": "Role played in the match"
+    },
+    "kda": {
+      "type": "number",
+      "description": "Calculated KDA ratio"
+    }
+  },
+  "required": [
+    "match_date",
+    "champion",
+    "kills",
+    "deaths",
+    "assists",
+    "win",
+    "role"
+  ]
+}
